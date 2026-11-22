@@ -35,7 +35,7 @@ const deck = buildDeck();
 
 export default function Index() {
 
-  const [total, setTotal] = useState(30 * 60);
+  const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   // The cards still left in the deck (starts as the full deck)
   const [remaining, setRemaining] = useState(deck);
@@ -53,6 +53,12 @@ export default function Index() {
   const [wasRunning, setWasRunning] = useState(false);
   // True when the 30 minutes are over
   const [timeUp, setTimeUp] = useState(false);
+  // Which screen is shown: 'home' or 'workout'
+  const [screen, setScreen] = useState('home');
+  // The selected mode: 'standard' or 'challenge'
+  const [mode, setMode] = useState('standard');
+  // Length of the Challenge mode, in seconds
+  const CHALLENGE_SECONDS = 30 * 60;
 
   // Timer: runs every time "running" changes
   useEffect(() => {
@@ -62,7 +68,7 @@ export default function Index() {
     
     const id = setInterval(() => {
       // Decreases the time by 1 sec
-      setTotal((t) => t - 1);
+      setElapsed((t) => t + 1);
     }, 1000);
 
     // Cleanup: stop the timer when the effect re-runs or the screen closes
@@ -71,17 +77,17 @@ export default function Index() {
   // Re-run this effect whenever "running" changes  
   }, [running]);
 
-  // Watches the time: when it reaches 0, stop the timer and show the dialog
+  // Challenge mode: when the time is over, stop the timer and show the dialog
   useEffect(() => {
-    if (total <= 0) {
+    if (mode === 'challenge' && elapsed >= CHALLENGE_SECONDS) {
       setRunning(false);
       setTimeUp(true);
     }
-  }, [total]);
+  }, [elapsed, mode]);
   
   // Puts the app back to the starting screen
   const doReset = () => {
-    setTotal(30 * 60);
+    setElapsed(0);
     setRunning(false);
     setRemaining(deck);
     setHand([]);
@@ -89,6 +95,7 @@ export default function Index() {
     setSets(0);
     setFinished(false);
     setTimeUp(false);
+    setScreen('home');
   };
 
   // Reset pressed: remember the timer state, pause it, open the dialog
@@ -152,216 +159,275 @@ export default function Index() {
 
   return (
     <View style={{ flex: 1 }}>
+     
+      {/* Home screen */}
+      {screen === 'home' && (
+        <View style={{ flex: 1, backgroundColor: '#000000', padding: 20, alignItems: 'center', justifyContent: 'center' }}>
 
-      {/*Background Color*/}
-      <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center'}}>
+          {/* Title */}
+          <Text style={{ color: 'white', fontSize: 40, fontWeight: '800'}}>RepDeck</Text>
 
-        {/* Timer*/}
-        <Text style={{ color: 'white', fontSize: 46, fontWeight: '800', textAlign: 'center', marginTop: 8 }}>
-          {fmt(total)}
-        </Text>
+          {/* Mode selection */}
+          <Text style={{ color: '#cfe3d8', fontSize: 18, marginTop: 40, textAlign: 'center' }}>Select mode</Text>
 
-        {/* Pause/Resume and Reset buttons*/}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
+          {/* The two radio buttons */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16 }}>
+            {/* Radio button: Standard */}
+            <Pressable
+              onPress={() => setMode('standard')}
+              style={{ flexDirection: 'row', alignItems: 'center', marginRight: 32 }}
+            >
+              <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: '#e8b84a', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                {mode === 'standard' && (
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#e8b84a' }} />
+                )}
+              </View>
+              <Text style={{ color: 'white', fontSize: 20 }}>Standard</Text>
+            </Pressable>
 
-          {/*Pause/Resume Button*/}
+            {/* Radio button: Challenge */}
+            <Pressable
+              onPress={() => setMode('challenge')}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: '#e8b84a', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                {mode === 'challenge' && (
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#e8b84a' }} />
+                )}
+              </View>
+              <Text style={{ color: 'white', fontSize: 20 }}>Challenge</Text>
+            </Pressable>
+          </View>
+
+          {/* Description of the selected mode */}
+          <Text style={{ color: '#cfe3d8', fontSize: 16, marginTop: 24, textAlign: 'center' }}>
+            {mode === 'standard'
+              ? 'Draw cards and complete the deck without a time limit.'
+              : 'Race the clock: 30 minutes. How many reps can you do?'}
+          </Text>
+
+          {/* Start button */}
           <Pressable
-            onPress={() => {
-              // Before the first Draw there is nothing to pause
-              if (hand.length === 0) return;
-              setRunning(!running);
-            }}
-            style={{
-              backgroundColor: '#e8b84a',
-              padding: 14,
-              borderRadius: 30,
-              marginRight: 12,
-              opacity: hand.length === 0 ? 0.5 : 1,
-            }}
+            onPress={() => setScreen('workout')}
+            style={{ backgroundColor: '#e8b84a', paddingVertical: 16, paddingHorizontal: 56, borderRadius: 30, alignSelf: 'center', marginTop: 40 }}
           >
-            <Text style={{ fontWeight: '800' }}>
-              {running || hand.length === 0 ? 'Pause' : 'Resume'}
-            </Text>
-          </Pressable>
-
-          {/*Reset Button*/}
-          <Pressable
-            onPress={handleReset}
-            style={{ backgroundColor: '#555555', padding: 14, borderRadius: 30 }}
-          >
-            <Text style={{ color: 'white', fontWeight: '800' }}>Reset</Text>
+            <Text style={{ fontWeight: '800', fontSize: 20 }}>Start</Text>
           </Pressable>
 
         </View>
-                        
-        {/* Cards and total: shown only after the cards have been drawn */}
-        {hand.length === 2 && (
-          <View>
+      )}
+     
+      {/* Workout screen */}
+      {screen === 'workout' && (
+        <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center'}}>
 
-            {/* The two cards */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+          {/* Timer*/}
+          <Text style={{ color: 'white', fontSize: 46, fontWeight: '800', textAlign: 'center', marginTop: 8 }}>
+            {fmt(mode === 'challenge' ? CHALLENGE_SECONDS - elapsed : elapsed)}
+          </Text>
 
-              {/* Card 1 */}
-              <View style={{ width: 130, height: 190, backgroundColor: '#f5efe0', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                <Text style={{ fontSize: 44, fontWeight: '800', color: getColor(hand[0].suit) }}>{hand[0].rank}</Text>
-                <Text style={{ fontSize: 56, color: getColor(hand[0].suit) }}>{hand[0].suit}</Text>
-              </View>
+          {/* Pause/Resume and Reset buttons*/}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
 
-              {/* Card 2 */}
-              <View style={{ width: 130, height: 190, backgroundColor: '#f5efe0', borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 44, fontWeight: '800', color: getColor(hand[1].suit) }}>{hand[1].rank}</Text>
-                <Text style={{ fontSize: 56, color: getColor(hand[1].suit) }}>{hand[1].suit}</Text>
-              </View>
+            {/*Pause/Resume Button*/}
+            <Pressable
+              onPress={() => {
+                // Before the first Draw there is nothing to pause
+                if (hand.length === 0) return;
+                setRunning(!running);
+              }}
+              style={{
+                backgroundColor: '#e8b84a',
+                padding: 14,
+                borderRadius: 30,
+                marginRight: 12,
+                opacity: hand.length === 0 ? 0.5 : 1,
+              }}
+            >
+              <Text style={{ fontWeight: '800' }}>
+                {running || hand.length === 0 ? 'Pause' : 'Resume'}
+              </Text>
+            </Pressable>
 
-            </View>
-
-            {/* Total reps of the two cards */}
-            <Text style={{ color: 'white', fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 16 }}>
-              <Text style={{ color: '#e8b84a', fontSize: 32 }}>{hand[0].reps + hand[1].reps}</Text> reps on deck
-            </Text>
-
-            {/* Sets and total reps */}
-            <Text style={{ color: 'white', fontSize: 18, textAlign: 'center', marginTop: 8 }}>
-              Sets: <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{sets}</Text>
-              {'  ·  '}
-              Total reps: <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{totalReps}</Text>
-            </Text>
+            {/*Reset Button*/}
+            <Pressable
+              onPress={handleReset}
+              style={{ backgroundColor: '#555555', padding: 14, borderRadius: 30 }}
+            >
+              <Text style={{ color: 'white', fontWeight: '800' }}>Reset</Text>
+            </Pressable>
 
           </View>
-        )}
+                          
+          {/* Cards and total: shown only after the cards have been drawn */}
+          {hand.length === 2 && (
+            <View>
 
-        {/* Draw and Finish buttons */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
+              {/* The two cards */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
 
-          {/*Draw Button*/}
-          <Pressable
-            onPress={drawTwo}
-            style={{ backgroundColor: '#e8b84a', padding: 14, borderRadius: 30 }}
-          >
-            <Text style={{ fontWeight: '800' }}>Draw</Text>
-          </Pressable>
+                {/* Card 1 */}
+                <View style={{ width: 130, height: 190, backgroundColor: '#f5efe0', borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                  <Text style={{ fontSize: 44, fontWeight: '800', color: getColor(hand[0].suit) }}>{hand[0].rank}</Text>
+                  <Text style={{ fontSize: 56, color: getColor(hand[0].suit) }}>{hand[0].suit}</Text>
+                </View>
 
-          {/*Finish Button: appears after the first Draw*/}
-          {hand.length > 0 && (
-            <Pressable
-              onPress={handleFinish}
-              style={{ borderWidth: 2, borderColor: '#e8b84a', padding: 12, borderRadius: 30, marginLeft: 12 }}
-            >
-              <Text style={{ color: '#e8b84a', fontWeight: '800' }}>Finish</Text>
-            </Pressable>
+                {/* Card 2 */}
+                <View style={{ width: 130, height: 190, backgroundColor: '#f5efe0', borderRadius: 14, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 44, fontWeight: '800', color: getColor(hand[1].suit) }}>{hand[1].rank}</Text>
+                  <Text style={{ fontSize: 56, color: getColor(hand[1].suit) }}>{hand[1].suit}</Text>
+                </View>
+
+              </View>
+
+              {/* Total reps of the two cards */}
+              <Text style={{ color: 'white', fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 16 }}>
+                <Text style={{ color: '#e8b84a', fontSize: 32 }}>{hand[0].reps + hand[1].reps}</Text> reps on deck
+              </Text>
+
+              {/* Sets and total reps */}
+              <Text style={{ color: 'white', fontSize: 18, textAlign: 'center', marginTop: 8 }}>
+                Sets: <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{sets}</Text>
+                {'  ·  '}
+                Total reps: <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{totalReps}</Text>
+              </Text>
+
+            </View>
           )}
 
+          {/* Draw and Finish buttons */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
+
+            {/*Draw Button*/}
+            <Pressable
+              onPress={drawTwo}
+              style={{ backgroundColor: '#e8b84a', padding: 14, borderRadius: 30 }}
+            >
+              <Text style={{ fontWeight: '800' }}>Draw</Text>
+            </Pressable>
+
+            {/*Finish Button: appears after the first Draw*/}
+            {hand.length > 0 && (
+              <Pressable
+                onPress={handleFinish}
+                style={{ borderWidth: 2, borderColor: '#e8b84a', padding: 12, borderRadius: 30, marginLeft: 12 }}
+              >
+                <Text style={{ color: '#e8b84a', fontWeight: '800' }}>Finish</Text>
+              </Pressable>
+            )}
+
+          </View>
+                    
+          {/*Remaining Cards*/} 
+          <Text style={{ color: '#cfe3d8', textAlign: 'center', marginTop: 8 }}>
+            Cards left: {remaining.length}
+          </Text>
+            
         </View>
-                  
-         {/*Remaining Cards*/} 
-        <Text style={{ color: '#cfe3d8', textAlign: 'center', marginTop: 8 }}>
-          Cards left: {remaining.length}
-        </Text>
-           
-      </View>
+      )}
 
-        {/* Dialog shown when the deck is finished */}
-        <Modal
-          visible={finished}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={doReset}
-        >
+      {/* Dialog shown when the deck is finished */}
+      <Modal
+        visible={finished}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={doReset}
+      >
 
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
-            {/* The dialog box */}
-            <View style={{ backgroundColor: '#1c1c1c', borderRadius: 16, padding: 24, width: '80%', maxWidth: 360 }}>
-              <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
-                You finished your workout!
-              </Text>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+          {/* The dialog box */}
+          <View style={{ backgroundColor: '#1c1c1c', borderRadius: 16, padding: 24, width: '80%', maxWidth: 360 }}>
+            <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+              You finished your workout!
+            </Text>
 
-              <Text style={{ color: '#cfe3d8', fontSize: 18, textAlign: 'center', marginTop: 16 }}>
-                You did{' '}
-                <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{sets}</Text> {sets === 1 ? 'set' : 'sets'},{' '}
-                <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{totalReps}</Text> reps in{' '}
-                <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{fmt(30 * 60 - total)}</Text>
-              </Text>
+            <Text style={{ color: '#cfe3d8', fontSize: 18, textAlign: 'center', marginTop: 16 }}>
+              You did{' '}
+              <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{sets}</Text> {sets === 1 ? 'set' : 'sets'},{' '}
+              <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{totalReps}</Text> reps in{' '}
+              <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{fmt(elapsed)}</Text>
+            </Text>
+
+            <Pressable
+              onPress={doReset}
+              style={{ backgroundColor: '#e8b84a', paddingVertical: 12, paddingHorizontal: 40, borderRadius: 30, alignSelf: 'center', marginTop: 24 }}
+            >
+              <Text style={{ fontWeight: '800' }}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reset confirmation dialog */}
+      <Modal
+        visible={resetVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={cancelReset}
+      >
+        {/* Dark background that centers the box */}
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+
+          {/* The dialog box */}
+          <View style={{ backgroundColor: '#1c1c1c', borderRadius: 16, padding: 24, width: '80%', maxWidth: 360 }}>
+            <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+              Reset
+            </Text>
+            <Text style={{ color: '#cfe3d8', fontSize: 16, textAlign: 'center', marginTop: 12 }}>
+              Are you sure you want to reset?
+            </Text>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+              <Pressable
+                onPress={cancelReset}
+                style={{ backgroundColor: '#555555', paddingVertical: 12, paddingHorizontal: 28, borderRadius: 30, marginRight: 12 }}
+              >
+                <Text style={{ color: 'white', fontWeight: '800' }}>No</Text>
+              </Pressable>
 
               <Pressable
-                onPress={doReset}
-                style={{ backgroundColor: '#e8b84a', paddingVertical: 12, paddingHorizontal: 40, borderRadius: 30, alignSelf: 'center', marginTop: 24 }}
+                onPress={confirmReset}
+                style={{ backgroundColor: '#e8b84a', paddingVertical: 12, paddingHorizontal: 28, borderRadius: 30 }}
               >
-                <Text style={{ fontWeight: '800' }}>OK</Text>
+                <Text style={{ fontWeight: '800' }}>Yes</Text>
               </Pressable>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Reset confirmation dialog */}
-        <Modal
-          visible={resetVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={cancelReset}
-        >
-          {/* Dark background that centers the box */}
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Dialog shown when the time is up */}
+      <Modal
+        visible={timeUp}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={doReset}
+      >
+        {/* Dark background that centers the box */}
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
 
-            {/* The dialog box */}
-            <View style={{ backgroundColor: '#1c1c1c', borderRadius: 16, padding: 24, width: '80%', maxWidth: 360 }}>
-              <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
-                Reset
-              </Text>
-              <Text style={{ color: '#cfe3d8', fontSize: 16, textAlign: 'center', marginTop: 12 }}>
-                Are you sure you want to reset?
-              </Text>
+          {/* The dialog box */}
+          <View style={{ backgroundColor: '#1c1c1c', borderRadius: 16, padding: 24, width: '80%', maxWidth: 360 }}>
+            <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+              Time's up!
+            </Text>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-                <Pressable
-                  onPress={cancelReset}
-                  style={{ backgroundColor: '#555555', paddingVertical: 12, paddingHorizontal: 28, borderRadius: 30, marginRight: 12 }}
-                >
-                  <Text style={{ color: 'white', fontWeight: '800' }}>No</Text>
-                </Pressable>
+            <Text style={{ color: '#cfe3d8', fontSize: 18, textAlign: 'center', marginTop: 16 }}>
+              You did{' '}
+              <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{sets}</Text> {sets === 1 ? 'set' : 'sets'} and{' '}
+              <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{totalReps}</Text> reps
+            </Text>
 
-                <Pressable
-                  onPress={confirmReset}
-                  style={{ backgroundColor: '#e8b84a', paddingVertical: 12, paddingHorizontal: 28, borderRadius: 30 }}
-                >
-                  <Text style={{ fontWeight: '800' }}>Yes</Text>
-                </Pressable>
-              </View>
-            </View>
+            <Pressable
+              onPress={doReset}
+              style={{ backgroundColor: '#e8b84a', paddingVertical: 12, paddingHorizontal: 40, borderRadius: 30, alignSelf: 'center', marginTop: 24 }}
+            >
+              <Text style={{ fontWeight: '800' }}>OK</Text>
+            </Pressable>
           </View>
-        </Modal>
 
-        {/* Dialog shown when the time is up */}
-        <Modal
-          visible={timeUp}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={doReset}
-        >
-          {/* Dark background that centers the box */}
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}>
-
-            {/* The dialog box */}
-            <View style={{ backgroundColor: '#1c1c1c', borderRadius: 16, padding: 24, width: '80%', maxWidth: 360 }}>
-              <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
-                Time's up!
-              </Text>
-
-              <Text style={{ color: '#cfe3d8', fontSize: 18, textAlign: 'center', marginTop: 16 }}>
-                You did{' '}
-                <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{sets}</Text> {sets === 1 ? 'set' : 'sets'} and{' '}
-                <Text style={{ color: '#e8b84a', fontWeight: '800' }}>{totalReps}</Text> reps
-              </Text>
-
-              <Pressable
-                onPress={doReset}
-                style={{ backgroundColor: '#e8b84a', paddingVertical: 12, paddingHorizontal: 40, borderRadius: 30, alignSelf: 'center', marginTop: 24 }}
-              >
-                <Text style={{ fontWeight: '800' }}>OK</Text>
-              </Pressable>
-            </View>
-
-          </View>
-        </Modal>
+        </View>
+      </Modal>
         
     </View>
   );
