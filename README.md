@@ -12,9 +12,17 @@ Every card is worth reps:
 
 Each draw gives you two cards, which make one set. Add the two values together and that is how many reps are on the deck. Cards that were drawn are removed from the deck, so every card comes up once per session.
 
+<p align="left">
+  <img src="./screenshots/workout.jpg" alt="Workout screen" width="240">
+</p>
+
 **Modes**
 - Standard: Do the workout at your own pace, with no time limit.
 - Challenge: 30 minutes on the clock. How many reps can you do?
+
+<p align="left">
+  <img src="./screenshots/home.jpg" alt="Home screen" width="240">
+</p>
   
 **Install (Android)**
 - Open the download link on your Android phone: [Download RepDeck](https://expo.dev/accounts/pkinnas/projects/RepDeck/builds/e0afabb0-8259-436e-94bd-15a3c0908f1b)
